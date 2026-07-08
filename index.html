@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoData 检索</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/protobufjs@8/dist/protobuf.min.js"></script>
+  <style>
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    @keyframes shimmer {
+      0% {
+        background-position: -200% 0;
+      }
+
+      100% {
+        background-position: 200% 0;
+      }
+    }
+
+    .loading-shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite linear;
+    }
+  </style>
+</head>
+
+<body
+  class="bg-[#f8fafc] text-slate-800 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+  <header class="bg-white/80 border-b border-slate-200/80 sticky top-0 z-50 backdrop-blur-md shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3.5">
+        <div
+          class="bg-gradient-to-tr from-indigo-600 to-violet-500 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
+            </path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-slate-900 tracking-tight">GeoData 检索</h1>
+          <p class="text-xs text-slate-400 font-medium">路由分流规则库本地离线实时匹配</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3 text-xs font-semibold">
+        <div id="cf-ip-status"
+          class="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+          <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse"></span>
+          <span id="cf-ip-text">检测本地 IP...</span>
+        </div>
+        <div id="geosite-status"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          <span>GeoSite: 加载中</span>
+        </div>
+        <div id="geoip-status"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          <span>GeoIP: 加载中</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div
+      class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 transition-all duration-300 hover:shadow-md hover:border-slate-300/50">
+      <label for="search-input" class="block text-sm font-bold text-slate-700 mb-2.5 tracking-tight">输入目标 IP (v4/v6) 或
+        域名</label>
+      <div class="relative flex items-center">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input type="text" id="search-input" disabled
+          class="loading-shimmer block w-full pl-11 pr-36 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-base text-slate-900 disabled:opacity-70 disabled:cursor-not-allowed placeholder:text-slate-400 font-medium shadow-inner"
+          placeholder="正在下载规则库...">
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <span id="input-type-badge" class="hidden text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs"></span>
+        </div>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-400 font-medium">
+        <span
+          class="inline-flex items-center justify-center bg-slate-100 text-slate-500 rounded-md px-1.5 py-0.5 font-bold scale-90">示例</span>
+        <span><code class="cursor-pointer hover:text-indigo-600 hover:underline">240e:c4:6000::1</code> (IPv6)</span>
+        <span class="text-slate-300">|</span>
+        <span><code class="cursor-pointer hover:text-indigo-600 hover:underline">223.5.5.5</code> (IPv4)</span>
+        <span class="text-slate-300">|</span>
+        <span><code class="cursor-pointer hover:text-indigo-600 hover:underline">github.com</code> (域名)</span>
+      </div>
+    </div>
+
+    <div id="error-section"
+      class="hidden bg-rose-50 border border-rose-200/60 rounded-2xl p-5 flex items-start space-x-3.5 text-rose-800 animate-fade-in">
+      <svg class="w-5 h-5 text-rose-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.5"
+        viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+        </path>
+      </svg>
+      <div>
+        <h4 class="font-bold text-sm tracking-tight">输入格式校验失败</h4>
+        <p class="text-xs text-rose-600/90 font-medium mt-1">请输入合法的公网/私有 IPv4 地址、IPv6 标准/简写地址，或符合 RFC 规范的域名格式。</p>
+      </div>
+    </div>
+
+    <div id="result-section" class="hidden space-y-6">
+      <div
+        class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-xl shadow-indigo-950/10 border border-white/5 relative overflow-hidden">
+        <div class="absolute right-0 bottom-0 opacity-10 translate-x-10 translate-y-10 pointer-events-none">
+          <svg class="w-56 h-56" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+          </svg>
+        </div>
+        <p class="text-indigo-300 text-xs font-bold tracking-widest uppercase">TARGET</p>
+        <h2 id="result-target"
+          class="text-2xl sm:text-3xl font-mono font-bold tracking-tight mt-1 break-all bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200">
+          ---</h2>
+        <div class="mt-4 flex flex-wrap gap-2" id="result-meta-badges"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="px-6 py-4.5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <h3 class="font-bold text-slate-800 flex items-center space-x-2 text-sm tracking-tight">
+            <span class="w-2 h-3.5 bg-indigo-500 rounded-sm block"></span>
+            <span>命中规则明细</span>
+          </h3>
+          <span id="match-count"
+            class="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full border border-indigo-100/50">0
+            条结果</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse table-auto">
+            <thead>
+              <tr
+                class="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/70 border-b border-slate-100">
+                <th class="px-6 py-4 min-w-[140px]">分类/代码 (Code)</th>
+                <th class="px-6 py-4 min-w-[150px]">规则库类型</th>
+                <th class="px-6 py-4">本地命中的 规则特征 / CIDR</th>
+                <th class="px-6 py-4 min-w-[140px]">扩展属性 (Attributes)</th>
+              </tr>
+            </thead>
+            <tbody id="result-table-body" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+          </table>
+        </div>
+
+        <div id="no-data-alert" class="hidden p-16 text-center animate-fade-in">
+          <div
+            class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto text-slate-400 mb-4 border border-slate-100 shadow-xs">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <p class="text-sm font-bold text-slate-500">未能在本地 GeoData 规则库中检索到匹配项</p>
+          <p class="text-xs text-slate-400 mt-1 font-medium">可能该地址属于直连或者未分类公网区域</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const PROTO = `syntax = "proto3";
+message Domain {
+  enum Type { Substr = 0; Regex = 1; Domain = 2; Full = 3; }
+  Type type = 1; string value = 2;
+  message Attribute { string key = 1; oneof typed_value { bool bool_value = 2; int64 int_value = 3; } }
+  repeated Attribute attribute = 3;
+}
+message GeoSite { string code = 1; repeated Domain domain = 2; }
+message GeoSiteList { repeated GeoSite entry = 1; }
+message CIDR { bytes ip = 1; uint32 prefix = 2; }
+message GeoIP { string code = 1; repeated CIDR cidr = 2; bool reverse_match = 3; }
+message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repeated GeoIP entry = 1; }`;
+
+    const root = protobuf.parse(PROTO).root;
+    const GeoSiteList = root.lookup('GeoSiteList');
+    const GeoIPList = root.lookup('GeoIPList');
+    const dbData = { geosite: null, geoip: null };
+    let autoFilledIp = null;
+
+    function getFlagEmoji(countryCode) {
+      const code = countryCode.toUpperCase();
+      if (code.length !== 2 || code === 'UK') {
+        if (code === 'CN') return '🇨🇳';
+        if (code === 'US') return '🇺🇸';
+        if (code === 'JP') return '🇯🇵';
+        if (code === 'HK') return '🇭🇰';
+        if (code === 'TW') return '🇹🇼';
+        return '';
+      }
+      return String.fromCodePoint(
+        ...[...code].map((c) => 127397 + c.charCodeAt(0)),
+      );
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(
+        /[&<>"']/g,
+        (m) =>
+          ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+          })[m],
+      );
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    async function fetchClientIp() {
+      const statusEl = document.getElementById('cf-ip-status');
+      statusEl.classList.remove('hidden');
+      try {
+        const resp = await fetch('/cdn-cgi/trace', { cache: 'no-store' });
+        if (!resp.ok) throw new Error();
+        const text = await resp.text();
+        const lines = text.split('\n');
+        const data = {};
+        lines.forEach((line) => {
+          const parts = line.split('=');
+          if (parts.length === 2) data[parts[0].trim()] = parts[1].trim();
+        });
+        if (data.ip) {
+          autoFilledIp = data.ip;
+          const locStr = data.loc ? ` (${data.loc})` : '';
+          statusEl.className =
+            'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/50 font-mono cursor-pointer hover:bg-indigo-100 transition-colors';
+          statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span><span>本地IP: ${data.ip}${locStr}</span>`;
+
+          const input = document.getElementById('search-input');
+          if (input && !input.disabled && !input.value.trim()) {
+            input.value = autoFilledIp;
+            identifyAndSearch(autoFilledIp);
+          }
+        }
+      } catch (err) {
+        console.warn('未能通过 /cdn-cgi/trace 获取本地 IP');
+        statusEl.className =
+          'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 border border-slate-200';
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span><span>本地IP: 未知</span>`;
+      }
+    }
+
+    async function loadGeoData(type, url, decoder, statusId) {
+      const statusEl = document.getElementById(statusId);
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+        const buffer = await resp.arrayBuffer();
+        dbData[type] = decoder.decode(new Uint8Array(buffer));
+        statusEl.className =
+          'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/60';
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>${type === 'geosite' ? 'GeoSite' : 'GeoIP'}: 已就绪</span>`;
+        checkInitialization();
+      } catch (err) {
+        console.error(`加载数据失败 [${type}]:`, err);
+        statusEl.className =
+          'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/60';
+        statusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span><span>${type === 'geosite' ? 'GeoSite' : 'GeoIP'}: 加载失败</span>`;
+      }
+    }
+
+    function checkInitialization() {
+      if (dbData.geosite && dbData.geoip) {
+        const input = document.getElementById('search-input');
+        input.disabled = false;
+        input.classList.remove('loading-shimmer');
+        input.placeholder = '输入 IPv4、IPv6 地址或域名进行实时比对...';
+
+        if (autoFilledIp) {
+          input.value = autoFilledIp;
+          identifyAndSearch(autoFilledIp);
+        } else {
+          input.focus();
+        }
+      }
+    }
+
+    function canonicalizeQuery(rawQuery) {
+      const q = rawQuery.trim().toLowerCase();
+      if (!q) return null;
+
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(q)) {
+        const parts = q.split('.').map(Number);
+        if (parts.every((p) => p <= 255)) {
+          return {
+            type: 'ipv4',
+            value: parts.join('.'),
+            bytes: new Uint8Array(parts),
+          };
+        }
+      }
+
+      if (q.includes(':') && /^[0-9a-fA-F:]+$/.test(q) && !q.includes(':::')) {
+        const parts = q.split('::');
+
+        const left = parts[0] ? parts[0].split(':') : [];
+        const right = parts[1] ? parts[1].split(':') : [];
+        const totalSegments = left.length + right.length;
+
+        if (parts.length === 1 && totalSegments !== 8) return null;
+        if (parts.length === 2 && totalSegments > 7) return null;
+
+        const missingLength = 8 - totalSegments;
+        const fullHexParts = [
+          ...left,
+          ...new Array(missingLength > 0 ? missingLength : 0).fill('0'),
+          ...right,
+        ];
+
+        const bytes = new Uint8Array(16);
+        const canonicalHexParts = [];
+
+        for (let i = 0; i < 8; i++) {
+          if (!fullHexParts[i] || fullHexParts[i].length > 4) return null;
+          const val = parseInt(fullHexParts[i], 16);
+
+          bytes[i * 2] = (val >> 8) & 0xff;
+          bytes[i * 2 + 1] = val & 0xff;
+          canonicalHexParts.push(val.toString(16));
+        }
+
+        const canonicalV6Text = canonicalHexParts
+          .join(':')
+          .replace(/(^|:)(0:)+/, '::');
+        return { type: 'ipv6', value: canonicalV6Text, bytes };
+      }
+
+      const domainRegex = /^(?!-)[a-z0-9-.]{1,63}(?<!-)\.[a-z]{2,6}$/;
+      if (domainRegex.test(q)) {
+        return { type: 'domain', value: q };
+      }
+    }
+
+    function matchIpCidr(inputIpBytes, ruleIpBytes, prefix) {
+      if (
+        !inputIpBytes ||
+        !ruleIpBytes ||
+        inputIpBytes.length !== ruleIpBytes.length
+      )
+        return false;
+      let bits = prefix;
+      for (let i = 0; i < inputIpBytes.length; i++) {
+        if (bits <= 0) break;
+        const mask = bits >= 8 ? 0xff : (0xff << (8 - bits)) & 0xff;
+        if ((inputIpBytes[i] & mask) !== (ruleIpBytes[i] & mask)) return false;
+        bits -= 8;
+      }
+      return true;
+    }
+
+    function ipBytesToText(bytes) {
+      if (bytes.length === 4) return Array.from(bytes).join('.');
+      if (bytes.length === 16) {
+        const hexs = [];
+        for (let i = 0; i < 16; i += 2)
+          hexs.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+        return hexs.join(':').replace(/(^|:)(0:)+/, '::');
+      }
+      return '';
+    }
+
+    function identifyAndSearch(rawVal) {
+      const badge = document.getElementById('input-type-badge');
+      const resultSection = document.getElementById('result-section');
+      const errorSection = document.getElementById('error-section');
+
+      if (!rawVal.trim()) {
+        badge.className = 'hidden';
+        resultSection.classList.add('hidden');
+        errorSection.classList.add('hidden');
+        return;
+      }
+
+      const canonicalInfo = canonicalizeQuery(rawVal);
+
+      if (!canonicalInfo) {
+        badge.innerText = 'Invalid 格式错误';
+        badge.className =
+          'text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 border border-rose-200';
+        badge.classList.remove('hidden');
+        resultSection.classList.add('hidden');
+        errorSection.classList.remove('hidden');
+        return;
+      }
+
+      errorSection.classList.add('hidden');
+      badge.classList.remove('hidden');
+      resultSection.classList.remove('hidden');
+
+      document.getElementById('result-target').innerText = canonicalInfo.value;
+
+      if (canonicalInfo.type === 'ipv4' || canonicalInfo.type === 'ipv6') {
+        const isV6 = canonicalInfo.type === 'ipv6';
+        badge.innerText = `IPv${isV6 ? '6' : '4'} 地址`;
+        badge.className = `text-xs font-bold px-2.5 py-1 rounded-lg border ${isV6
+          ? 'bg-teal-50 text-teal-700 border-teal-200/60'
+          : 'bg-blue-50 text-blue-700 border-blue-200/60'
+          }`;
+        searchIP(canonicalInfo);
+      } else if (canonicalInfo.type === 'domain') {
+        badge.innerText = 'Domain 域名';
+        badge.className =
+          'text-xs font-bold px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 border border-violet-200/60';
+        searchDomain(canonicalInfo.value);
+      }
+    }
+
+    function searchDomain(domainStr) {
+      const matches = [];
+      const domainTypes = ['Substr', 'Regex', 'Domain', 'Full'];
+      if (dbData.geosite?.entry) {
+        for (const site of dbData.geosite.entry) {
+          for (const d of site.domain) {
+            let isMatch = false;
+            const typeStr =
+              typeof d.type === 'number' ? domainTypes[d.type] : d.type;
+
+            if (typeStr === 'Substr') {
+              if (domainStr.includes(d.value)) isMatch = true;
+            } else if (typeStr === 'Regex') {
+              try {
+                if (new RegExp(d.value).test(domainStr)) isMatch = true;
+              } catch (e) { }
+            } else if (typeStr === 'Domain') {
+              if (domainStr === d.value || domainStr.endsWith('.' + d.value))
+                isMatch = true;
+            } else if (typeStr === 'Full') {
+              if (domainStr === d.value) isMatch = true;
+            }
+
+            if (isMatch) {
+              const attrs =
+                d.attribute && d.attribute.length > 0
+                  ? d.attribute
+                    .map(
+                      (a) =>
+                        `${a.key}=${a.boolValue ?? a.bool_value ?? a.intValue ?? a.int_value ?? 'true'}`,
+                    )
+                    .join(', ')
+                  : '-';
+              matches.push({
+                code: site.code,
+                type: typeStr,
+                value: d.value,
+                attrs,
+              });
+            }
+          }
+        }
+      }
+      renderResults(matches, 'GeoSite (域名规则库)');
+    }
+
+    function searchIP(ipInfo) {
+      const matches = [];
+      const version = ipInfo.type === 'ipv6' ? 6 : 4;
+      if (dbData.geoip?.entry) {
+        for (const geo of dbData.geoip.entry) {
+          for (const cidr of geo.cidr) {
+            if (
+              ipInfo.bytes.length === cidr.ip.length &&
+              matchIpCidr(ipInfo.bytes, cidr.ip, cidr.prefix)
+            ) {
+              matches.push({
+                code: geo.code,
+                type: `CIDR Block (v${version})`,
+                value: `${ipBytesToText(cidr.ip)}/${cidr.prefix}`,
+                attrs: geo.reverseMatch ? '反向匹配' : '常规规则',
+              });
+            }
+          }
+        }
+      }
+      renderResults(matches, `GeoIP (IP规则库 - IPv${version})`);
+    }
+
+    function renderResults(matches, dbMetaType) {
+      const tbody = document.getElementById('result-table-body');
+      const countEl = document.getElementById('match-count');
+      const noData = document.getElementById('no-data-alert');
+      const metaBadges = document.getElementById('result-meta-badges');
+
+      countEl.innerText = `${matches.length} 条规则命中`;
+
+      metaBadges.innerHTML = `<span class="bg-white/10 text-indigo-100 text-xs px-2.5 py-1 rounded-lg border border-white/10 font-medium backdrop-blur-xs">数据库: ${escapeHtml(dbMetaType)}</span>
+<span class="bg-white/10 text-indigo-100 text-xs px-2.5 py-1 rounded-lg border border-white/10 font-medium backdrop-blur-xs">状态: ${matches.length > 0 ? '✅ 命中' : '❌ 未匹配项'}</span>`;
+
+      if (matches.length === 0) {
+        tbody.innerHTML = '';
+        noData.classList.remove('hidden');
+        return;
+      }
+      noData.classList.add('hidden');
+
+      tbody.innerHTML = matches
+        .map((m) => {
+          const lowerCode = m.code.toLowerCase();
+          let codeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-100/70';
+          let displayName = m.code.toUpperCase();
+
+          if (['cn'].includes(lowerCode)) {
+            codeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-100/70';
+          } else if (['ads', 'category-ads-all'].includes(lowerCode)) {
+            codeStyle = 'bg-rose-50 text-rose-700 border-rose-100/70';
+          } else if (['direct'].includes(lowerCode)) {
+            codeStyle = 'bg-cyan-50 text-cyan-700 border-cyan-100/70';
+          } else if (
+            ['proxy', 'gfw', 'greatfire', 'telegram'].includes(lowerCode)
+          ) {
+            codeStyle = 'bg-amber-50 text-amber-700 border-amber-200/60';
+          } else if (['private', 'lan', 'geolocation-!cn'].includes(lowerCode)) {
+            codeStyle = 'bg-slate-100 text-slate-700 border-slate-200/70';
+          }
+
+          if (m.code.length === 2) {
+            const emoji = getFlagEmoji(m.code);
+            if (emoji) displayName = `${emoji} ${m.code.toUpperCase()}`;
+          }
+
+          return `<tr class="hover:bg-slate-50/70 transition-colors duration-150">
+  <td class="px-6 py-4 whitespace-nowrap">
+    <span class="font-mono font-bold px-2.5 py-1.5 rounded-lg text-xs border ${codeStyle} shadow-2xs">
+      ${escapeHtml(displayName)}
+    </span>
+  </td>
+  <td class="px-6 py-4 whitespace-nowrap text-slate-500 font-mono text-xs">
+    <span class="px-2 py-1 rounded-md bg-slate-100 border border-slate-200/60 text-slate-600 font-semibold">${escapeHtml(m.type)}</span>
+  </td>
+  <td class="px-6 py-4 font-mono text-xs text-slate-700 break-all max-w-md tracking-tight bg-slate-50/30">${escapeHtml(m.value)}</td>
+  <td class="px-6 py-4 text-xs text-slate-400 italic font-normal">${escapeHtml(m.attrs)}</td>
+</tr>`;
+        })
+        .join('');
+    }
+
+    document.getElementById('search-input').addEventListener(
+      'input',
+      debounce((e) => {
+        identifyAndSearch(e.target.value);
+      }, 150),
+    );
+
+    function quickSearch(value) {
+      const input = document.getElementById('search-input');
+      if (!input || input.disabled || !value) return;
+      input.value = value;
+      identifyAndSearch(value);
+    }
+
+    document.getElementById('cf-ip-status').addEventListener('click', () => {
+      if (autoFilledIp) {
+        quickSearch(autoFilledIp);
+      }
+    });
+
+    document.querySelectorAll('.mt-3 code').forEach((codeEl) => {
+      codeEl.addEventListener('click', (e) => {
+        const val = e.target.innerText.trim();
+        quickSearch(val);
+      });
+    });
+
+    fetchClientIp();
+
+    loadGeoData(
+      'geosite',
+      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat',
+      GeoSiteList,
+      'geosite-status',
+    );
+    loadGeoData(
+      'geoip',
+      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat',
+      GeoIPList,
+      'geoip-status',
+    );
+  </script>
+</body>
+
+</html>
