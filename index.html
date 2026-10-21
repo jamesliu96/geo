@@ -663,8 +663,8 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     function searchDomain(domainStr) {
       const matches = [];
       const domainTypes = ['Substr', 'Regex', 'Domain', 'Full'];
-      if (dbData.geosite?.entry) {
-        for (const site of dbData.geosite.entry) {
+      if (dbData.geosite?.entry)
+        for (const site of dbData.geosite.entry)
           for (const d of site.domain) {
             let isMatch = false;
             const typeStr =
@@ -700,8 +700,6 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
               });
             }
           }
-        }
-      }
       renderResults(matches, i18nData[currentLang].dbMetaSite);
     }
 
@@ -709,23 +707,19 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
       const matches = [];
       const version = ipInfo.type === 'ipv6' ? 6 : 4;
       const trans = i18nData[currentLang];
-      if (dbData.geoip?.entry) {
-        for (const geo of dbData.geoip.entry) {
-          for (const cidr of geo.cidr) {
+      if (dbData.geoip?.entry)
+        for (const geo of dbData.geoip.entry)
+          for (const cidr of geo.cidr)
             if (
               ipInfo.bytes.length === cidr.ip.length &&
               matchIpCidr(ipInfo.bytes, cidr.ip, cidr.prefix)
-            ) {
+            )
               matches.push({
                 code: geo.code,
                 type: `CIDR Block (v${version})`,
                 value: `${ipBytesToText(cidr.ip)}/${cidr.prefix}`,
                 attrs: geo.reverseMatch ? trans.revMatch : trans.normMatch,
               });
-            }
-          }
-        }
-      }
       renderResults(matches, trans.dbMetaIp.replace('{v}', version));
     }
 
