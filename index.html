@@ -817,9 +817,7 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     }
 
     document.getElementById('cf-ip-status').addEventListener('click', () => {
-      if (autoFilledIp) {
-        quickSearch(autoFilledIp);
-      }
+      if (autoFilledIp) quickSearch(autoFilledIp);
     });
 
     document.querySelectorAll('.mt-3 code').forEach((codeEl) => {
@@ -834,13 +832,13 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
 
     loadGeoData(
       'geosite',
-      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat',
+      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geosite/geosite-expand.dat',
       GeoSiteList,
       'geosite-status',
     );
     loadGeoData(
       'geoip',
-      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat',
+      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geoip/geoip-full.dat',
       GeoIPList,
       'geoip-status',
     );
