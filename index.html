@@ -87,15 +87,15 @@
           <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse shrink-0"></span>
           <span id="cf-ip-text" class="truncate">检测本地 IP...</span>
         </div>
-        <div id="geosite-status"
-          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-          <span id="geosite-status-text">GeoSite: 加载中</span>
-        </div>
         <div id="geoip-status"
           class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
           <span id="geoip-status-text">GeoIP: 加载中</span>
+        </div>
+        <div id="geosite-status"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+          <span id="geosite-status-text">GeoSite: 加载中</span>
         </div>
       </div>
     </div>
@@ -831,16 +831,16 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     fetchClientIp();
 
     loadGeoData(
-      'geosite',
-      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geosite/geosite-expand.dat',
-      GeoSiteList,
-      'geosite-status',
-    );
-    loadGeoData(
       'geoip',
       'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geoip/geoip-full.dat',
       GeoIPList,
       'geoip-status',
+    );
+    loadGeoData(
+      'geosite',
+      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geosite/geosite-expand.dat',
+      GeoSiteList,
+      'geosite-status',
     );
   </script>
 </body>
