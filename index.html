@@ -327,17 +327,15 @@
 
     function initLanguage() {
       const savedLang = localStorage.getItem('lang');
-      if (savedLang && i18nData[savedLang]) {
+      if (savedLang && i18nData[savedLang])
         currentLang = savedLang;
-      } else {
+      else {
         const navLang = navigator.language || navigator.userLanguage;
-        if (navLang.startsWith('zh-TW') || navLang.startsWith('zh-HK')) {
+        if (navLang.startsWith('zh-TW') || navLang.startsWith('zh-HK'))
           currentLang = 'zh-TW';
-        } else if (navLang.startsWith('zh')) {
+        else if (navLang.startsWith('zh'))
           currentLang = 'zh-CN';
-        } else {
-          currentLang = 'en';
-        }
+        else currentLang = 'en';
       }
       document.getElementById('lang-selector').value = currentLang;
       applyLanguage(currentLang);
@@ -369,20 +367,16 @@
       document.getElementById('i18n-nodata-desc').innerText = trans.nodataDesc;
 
       const input = document.getElementById('search-input');
-      if (input) {
-        if (input.disabled) {
+      if (input)
+        if (input.disabled)
           input.placeholder = trans.placeholderLoading;
-        } else {
+        else
           input.placeholder = trans.placeholderReady;
-        }
-      }
 
       refreshStatusBadges();
 
       const rawVal = input?.value || '';
-      if (rawVal.trim()) {
-        identifyAndSearch(rawVal);
-      }
+      if (rawVal.trim()) identifyAndSearch(rawVal);
     }
 
     function refreshStatusBadges() {
@@ -392,9 +386,8 @@
       if (autoFilledIp) {
         const locStr = window.lastIpLoc ? ` (${window.lastIpLoc})` : '';
         statusEl.querySelector('span:not(.rounded-full)').innerText = `${trans.localIp}: ${autoFilledIp}${locStr}`;
-      } else if (!statusEl.classList.contains('hidden')) {
+      } else if (!statusEl.classList.contains('hidden'))
         statusEl.querySelector('span:not(.rounded-full)').innerText = trans.detectingIp;
-      }
 
       ['geosite', 'geoip'].forEach(type => {
         const el = document.getElementById(`${type}-status`);
@@ -406,9 +399,7 @@
         } else if (el.classList.contains('bg-rose-50')) {
           el.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/60 shrink-0';
           textEl.innerText = `${titlePrefix}: ${trans.failed}`;
-        } else {
-          textEl.innerText = `${titlePrefix}: ${trans.loading}`;
-        }
+        } else textEl.innerText = `${titlePrefix}: ${trans.loading}`;
       });
     }
 
@@ -535,9 +526,7 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
         if (autoFilledIp) {
           input.value = autoFilledIp;
           identifyAndSearch(autoFilledIp);
-        } else {
-          input.focus();
-        }
+        } else input.focus();
       }
     }
 
@@ -592,9 +581,8 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
       }
 
       const domainRegex = /^(?!-)[a-z0-9-.]{1,63}(?<!-)\.[a-z]{2,6}$/;
-      if (domainRegex.test(q)) {
+      if (domainRegex.test(q))
         return { type: 'domain', value: q };
-      }
     }
 
     function matchIpCidr(inputIpBytes, ruleIpBytes, prefix) {
@@ -682,18 +670,17 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
             const typeStr =
               typeof d.type === 'number' ? domainTypes[d.type] : d.type;
 
-            if (typeStr === 'Substr') {
+            if (typeStr === 'Substr')
               if (domainStr.includes(d.value)) isMatch = true;
-            } else if (typeStr === 'Regex') {
+            else if (typeStr === 'Regex')
               try {
                 if (new RegExp(d.value).test(domainStr)) isMatch = true;
               } catch (e) { }
-            } else if (typeStr === 'Domain') {
+            else if (typeStr === 'Domain')
               if (domainStr === d.value || domainStr.endsWith('.' + d.value))
                 isMatch = true;
-            } else if (typeStr === 'Full') {
+            else if (typeStr === 'Full')
               if (domainStr === d.value) isMatch = true;
-            }
 
             if (isMatch) {
               const attrs =
@@ -767,19 +754,18 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
           let codeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-100/70';
           let displayName = m.code.toUpperCase();
 
-          if (['cn'].includes(lowerCode)) {
+          if (['cn'].includes(lowerCode))
             codeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-100/70';
-          } else if (['ads', 'category-ads-all'].includes(lowerCode)) {
+          else if (['ads', 'category-ads-all'].includes(lowerCode))
             codeStyle = 'bg-rose-50 text-rose-700 border-rose-100/70';
-          } else if (['direct'].includes(lowerCode)) {
+          else if (['direct'].includes(lowerCode))
             codeStyle = 'bg-cyan-50 text-cyan-700 border-cyan-100/70';
-          } else if (
+          else if (
             ['proxy', 'gfw', 'greatfire', 'telegram'].includes(lowerCode)
-          ) {
+          )
             codeStyle = 'bg-amber-50 text-amber-700 border-amber-200/60';
-          } else if (['private', 'lan', 'geolocation-!cn'].includes(lowerCode)) {
+          else if (['private', 'lan', 'geolocation-!cn'].includes(lowerCode))
             codeStyle = 'bg-slate-100 text-slate-700 border-slate-200/70';
-          }
 
           if (m.code.length === 2) {
             const emoji = getFlagEmoji(m.code);
@@ -822,8 +808,7 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
 
     document.querySelectorAll('.mt-3 code').forEach((codeEl) => {
       codeEl.addEventListener('click', (e) => {
-        const val = e.target.innerText.trim();
-        quickSearch(val);
+        quickSearch(e.target.innerText.trim());
       });
     });
 
@@ -832,13 +817,13 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
 
     loadGeoData(
       'geoip',
-      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geoip/geoip-full.dat',
+      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat',
       GeoIPList,
       'geoip-status',
     );
     loadGeoData(
       'geosite',
-      'https://raw.githubusercontent.com/XTLS/Xray-rules-dat/release/geosite/geosite-expand.dat',
+      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat',
       GeoSiteList,
       'geosite-status',
     );
