@@ -87,15 +87,15 @@
           <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse shrink-0"></span>
           <span id="cf-ip-text" class="truncate">检测本地 IP...</span>
         </div>
-        <div id="geoip-status"
-          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-          <span id="geoip-status-text">GeoIP: 加载中</span>
-        </div>
         <div id="geosite-status"
           class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
           <span id="geosite-status-text">GeoSite: 加载中</span>
+        </div>
+        <div id="geoip-status"
+          class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/70 transition-all duration-300 shrink-0">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+          <span id="geoip-status-text">GeoIP: 加载中</span>
         </div>
       </div>
     </div>
@@ -327,15 +327,17 @@
 
     function initLanguage() {
       const savedLang = localStorage.getItem('lang');
-      if (savedLang && i18nData[savedLang])
+      if (savedLang && i18nData[savedLang]) {
         currentLang = savedLang;
-      else {
+      } else {
         const navLang = navigator.language || navigator.userLanguage;
-        if (navLang.startsWith('zh-TW') || navLang.startsWith('zh-HK'))
+        if (navLang.startsWith('zh-TW') || navLang.startsWith('zh-HK')) {
           currentLang = 'zh-TW';
-        else if (navLang.startsWith('zh'))
+        } else if (navLang.startsWith('zh')) {
           currentLang = 'zh-CN';
-        else currentLang = 'en';
+        } else {
+          currentLang = 'en';
+        }
       }
       document.getElementById('lang-selector').value = currentLang;
       applyLanguage(currentLang);
@@ -367,16 +369,20 @@
       document.getElementById('i18n-nodata-desc').innerText = trans.nodataDesc;
 
       const input = document.getElementById('search-input');
-      if (input)
-        if (input.disabled)
+      if (input) {
+        if (input.disabled) {
           input.placeholder = trans.placeholderLoading;
-        else
+        } else {
           input.placeholder = trans.placeholderReady;
+        }
+      }
 
       refreshStatusBadges();
 
       const rawVal = input?.value || '';
-      if (rawVal.trim()) identifyAndSearch(rawVal);
+      if (rawVal.trim()) {
+        identifyAndSearch(rawVal);
+      }
     }
 
     function refreshStatusBadges() {
@@ -386,8 +392,9 @@
       if (autoFilledIp) {
         const locStr = window.lastIpLoc ? ` (${window.lastIpLoc})` : '';
         statusEl.querySelector('span:not(.rounded-full)').innerText = `${trans.localIp}: ${autoFilledIp}${locStr}`;
-      } else if (!statusEl.classList.contains('hidden'))
+      } else if (!statusEl.classList.contains('hidden')) {
         statusEl.querySelector('span:not(.rounded-full)').innerText = trans.detectingIp;
+      }
 
       ['geosite', 'geoip'].forEach(type => {
         const el = document.getElementById(`${type}-status`);
@@ -399,7 +406,9 @@
         } else if (el.classList.contains('bg-rose-50')) {
           el.className = 'flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 border border-rose-200/60 shrink-0';
           textEl.innerText = `${titlePrefix}: ${trans.failed}`;
-        } else textEl.innerText = `${titlePrefix}: ${trans.loading}`;
+        } else {
+          textEl.innerText = `${titlePrefix}: ${trans.loading}`;
+        }
       });
     }
 
@@ -526,7 +535,9 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
         if (autoFilledIp) {
           input.value = autoFilledIp;
           identifyAndSearch(autoFilledIp);
-        } else input.focus();
+        } else {
+          input.focus();
+        }
       }
     }
 
@@ -581,8 +592,9 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
       }
 
       const domainRegex = /^(?!-)[a-z0-9-.]{1,63}(?<!-)\.[a-z]{2,6}$/;
-      if (domainRegex.test(q))
+      if (domainRegex.test(q)) {
         return { type: 'domain', value: q };
+      }
     }
 
     function matchIpCidr(inputIpBytes, ruleIpBytes, prefix) {
@@ -663,24 +675,25 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     function searchDomain(domainStr) {
       const matches = [];
       const domainTypes = ['Substr', 'Regex', 'Domain', 'Full'];
-      if (dbData.geosite?.entry)
-        for (const site of dbData.geosite.entry)
+      if (dbData.geosite?.entry) {
+        for (const site of dbData.geosite.entry) {
           for (const d of site.domain) {
             let isMatch = false;
             const typeStr =
               typeof d.type === 'number' ? domainTypes[d.type] : d.type;
 
-            if (typeStr === 'Substr')
+            if (typeStr === 'Substr') {
               if (domainStr.includes(d.value)) isMatch = true;
-            else if (typeStr === 'Regex')
+            } else if (typeStr === 'Regex') {
               try {
                 if (new RegExp(d.value).test(domainStr)) isMatch = true;
               } catch (e) { }
-            else if (typeStr === 'Domain')
+            } else if (typeStr === 'Domain') {
               if (domainStr === d.value || domainStr.endsWith('.' + d.value))
                 isMatch = true;
-            else if (typeStr === 'Full')
+            } else if (typeStr === 'Full') {
               if (domainStr === d.value) isMatch = true;
+            }
 
             if (isMatch) {
               const attrs =
@@ -700,6 +713,8 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
               });
             }
           }
+        }
+      }
       renderResults(matches, i18nData[currentLang].dbMetaSite);
     }
 
@@ -707,19 +722,23 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
       const matches = [];
       const version = ipInfo.type === 'ipv6' ? 6 : 4;
       const trans = i18nData[currentLang];
-      if (dbData.geoip?.entry)
-        for (const geo of dbData.geoip.entry)
-          for (const cidr of geo.cidr)
+      if (dbData.geoip?.entry) {
+        for (const geo of dbData.geoip.entry) {
+          for (const cidr of geo.cidr) {
             if (
               ipInfo.bytes.length === cidr.ip.length &&
               matchIpCidr(ipInfo.bytes, cidr.ip, cidr.prefix)
-            )
+            ) {
               matches.push({
                 code: geo.code,
                 type: `CIDR Block (v${version})`,
                 value: `${ipBytesToText(cidr.ip)}/${cidr.prefix}`,
                 attrs: geo.reverseMatch ? trans.revMatch : trans.normMatch,
               });
+            }
+          }
+        }
+      }
       renderResults(matches, trans.dbMetaIp.replace('{v}', version));
     }
 
@@ -748,18 +767,19 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
           let codeStyle = 'bg-indigo-50 text-indigo-700 border-indigo-100/70';
           let displayName = m.code.toUpperCase();
 
-          if (['cn'].includes(lowerCode))
+          if (['cn'].includes(lowerCode)) {
             codeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-100/70';
-          else if (['ads', 'category-ads-all'].includes(lowerCode))
+          } else if (['ads', 'category-ads-all'].includes(lowerCode)) {
             codeStyle = 'bg-rose-50 text-rose-700 border-rose-100/70';
-          else if (['direct'].includes(lowerCode))
+          } else if (['direct'].includes(lowerCode)) {
             codeStyle = 'bg-cyan-50 text-cyan-700 border-cyan-100/70';
-          else if (
+          } else if (
             ['proxy', 'gfw', 'greatfire', 'telegram'].includes(lowerCode)
-          )
+          ) {
             codeStyle = 'bg-amber-50 text-amber-700 border-amber-200/60';
-          else if (['private', 'lan', 'geolocation-!cn'].includes(lowerCode))
+          } else if (['private', 'lan', 'geolocation-!cn'].includes(lowerCode)) {
             codeStyle = 'bg-slate-100 text-slate-700 border-slate-200/70';
+          }
 
           if (m.code.length === 2) {
             const emoji = getFlagEmoji(m.code);
@@ -797,12 +817,15 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     }
 
     document.getElementById('cf-ip-status').addEventListener('click', () => {
-      if (autoFilledIp) quickSearch(autoFilledIp);
+      if (autoFilledIp) {
+        quickSearch(autoFilledIp);
+      }
     });
 
     document.querySelectorAll('.mt-3 code').forEach((codeEl) => {
       codeEl.addEventListener('click', (e) => {
-        quickSearch(e.target.innerText.trim());
+        const val = e.target.innerText.trim();
+        quickSearch(val);
       });
     });
 
@@ -810,16 +833,16 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
     fetchClientIp();
 
     loadGeoData(
-      'geoip',
-      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat',
-      GeoIPList,
-      'geoip-status',
-    );
-    loadGeoData(
       'geosite',
       'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geosite.dat',
       GeoSiteList,
       'geosite-status',
+    );
+    loadGeoData(
+      'geoip',
+      'https://cdn.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/geoip.dat',
+      GeoIPList,
+      'geoip-status',
     );
   </script>
 </body>
