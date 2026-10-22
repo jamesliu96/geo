@@ -591,10 +591,7 @@ message GeoIPList { message GeoIPEntry { string key = 1; GeoIP value = 2; } repe
         return { type: 'ipv6', value: canonicalV6Text, bytes };
       }
 
-      const domainRegex = /^(?!-)[a-z0-9-.]{1,63}(?<!-)\.[a-z]{2,6}$/;
-      if (domainRegex.test(q)) {
-        return { type: 'domain', value: q };
-      }
+      return { type: 'domain', value: q };
     }
 
     function matchIpCidr(inputIpBytes, ruleIpBytes, prefix) {
